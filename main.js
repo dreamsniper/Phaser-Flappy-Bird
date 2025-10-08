@@ -9,7 +9,7 @@ const config = {
     default: "arcade",
     arcade: { gravity: { y: 600 }, debug: false },
   },
-  scene: [StartMenuScene, GameScene],
+  scene: [StartMenuScene, GameScene], // start with menu
 };
 
-const game = new Phaser.Game(config);
+new Phaser.Game(config);

@@ -23,15 +23,22 @@ export default class GameScene extends Phaser.Scene {
       frameHeight: 24,
     });
     this.load.image("pipe", "assets/images/pipe.png");
-    this.load.image("bg-dawn", "assets/images/background-dawn.png");
+
+    // Backgrounds
+    this.load.image("bg-morning", "assets/images/background-dawn.png");
+    this.load.image("bg-afternoon", "assets/images/background-afternoon.png");
+    this.load.image("bg-evening", "assets/images/background-evening.png");
+    this.load.image("bg-night", "assets/images/background-night.png");
   }
+
 
   create() {
     const { width, height } = this.sys.game.config;
+    const bgKey = ["bg-morning", "bg-afternoon", "bg-evening", "bg-night"][this.level - 1];
 
     // Background
     this.bg = this.add
-      .tileSprite(0, 0, width, height, "bg-dawn")
+      .tileSprite(0, 0, width, height, bgKey)
       .setOrigin(0, 0);
 
     // Bird
