@@ -1,3 +1,14 @@
+preload() {
+    this.load.spritesheet("bird", "assets/images/bird-spritesheet.png", {
+        frameWidth: 34, frameHeight: 24
+    });
+    this.load.image("pipe", "assets/images/pipe.png");
+
+    // Background
+    this.load.image("bg-dawn", "assets/images/background-dawn.png");
+    console.log(this.textures.exists("bg-dawn"));
+}
+
 create() {
     // Background (added FIRST so it sits behind everything)
     this.bg = this.add.tileSprite(
@@ -45,4 +56,14 @@ create() {
 
     // Collision
     this.physics.add.overlap(this.bird, this.pipes, this.gameOver, null, this);
+}
+
+update() {
+    // Scroll background
+    this.bg.tilePositionX += 1;
+
+    // If bird hits top/bottom
+    if (this.bird.y >= 600 || this.bird.y <= 0) {
+        this.gameOver();
+    }
 }
