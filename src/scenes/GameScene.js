@@ -67,35 +67,36 @@ export default class GameScene extends Phaser.Scene {
   }
 
   spawnPipe() {
-    const gap = 10;
-    const minY = gap + 50;
-    const maxY = this.sys.game.config.height - gap - 50;
-    const y = Phaser.Math.Between(minY, maxY);
+      // Make the gap smaller (bird has less room)
+      const gap = 100; // adjust this number for difficulty
+      
+      // Keep gap safely within screen bounds
+      const minY = gap + 50;
+      const maxY = this.sys.game.config.height - gap - 50;
+      const y = Phaser.Math.Between(minY, maxY);
 
-    // Top pipe
-    const topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
-    topPipe.flipY = true;
-    topPipe.body.allowGravity = false;
-    topPipe.body.setVelocityX(-200);
+      // Top pipe
+      let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
+      topPipe.flipY = true;
+      topPipe.body.allowGravity = false;
+      topPipe.body.setVelocityX(-200);
 
-    // Bottom pipe
-    const bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
-    bottomPipe.body.allowGravity = false;
-    bottomPipe.body.setVelocityX(-200);
+      // Bottom pipe
+      let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
+      bottomPipe.body.allowGravity = false;
+      bottomPipe.body.setVelocityX(-200);
 
-    // Score zone
-    //const scoreZone = this.add.zone(400, y, 1, this.sys.game.config.height);
-    const scoreZone = this.add.zone(400, y, 1, gap * 2);
+      // Score zone (matches the gap height)
+      let scoreZone = this.add.zone(400, y, 1, gap * 2);
+      this.physics.world.enable(scoreZone);
+      scoreZone.body.allowGravity = false;
+      scoreZone.body.setVelocityX(-200);
 
-    this.physics.world.enable(scoreZone);
-    scoreZone.body.allowGravity = false;
-    scoreZone.body.setVelocityX(-200);
-
-    this.physics.add.overlap(this.bird, scoreZone, () => {
-      this.score++;
-      this.scoreText.setText("Score: " + this.score);
-      scoreZone.destroy();
-    });
+      this.physics.add.overlap(this.bird, scoreZone, () => {
+          this.score++;
+          this.scoreText.setText("Score: " + this.score);
+          scoreZone.destroy();
+      });
   }
 
   gameOver() {
