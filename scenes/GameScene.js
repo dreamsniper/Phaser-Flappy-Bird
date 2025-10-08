@@ -4,42 +4,47 @@ export default class GameScene extends Phaser.Scene {
     this.score = 0;
   }
 
+  init(data) {
+    this.level = data.level || 1;
+
+    // Difficulty scaling by level
+    this.levels = [
+      { name: "Morning", pipeSpeed: -200, pointsNeeded: 5 },
+      { name: "Afternoon", pipeSpeed: -250, pointsNeeded: 10 },
+      { name: "Evening", pipeSpeed: -300, pointsNeeded: 15 },
+      { name: "Night", pipeSpeed: -350, pointsNeeded: 20 },
+    ];
+    this.currentLevel = this.levels[this.level - 1];
+  }
+
   preload() {
     this.load.spritesheet("bird", "assets/images/bird-spritesheet.png", {
       frameWidth: 34,
       frameHeight: 24,
     });
     this.load.image("pipe", "assets/images/pipe.png");
-    this.load.image("bg-dawn", "assets/images/background-dawn.png"); // Background
+    this.load.image("bg-dawn", "assets/images/background-dawn.png");
   }
 
   create() {
-    // Background (tileSprite lets us scroll it)
+    const { width, height } = this.sys.game.config;
+
+    // Background
     this.bg = this.add
-      .tileSprite(
-        0,
-        0,
-        this.sys.game.config.width,
-        this.sys.game.config.height,
-        "bg-dawn"
-      )
+      .tileSprite(0, 0, width, height, "bg-dawn")
       .setOrigin(0, 0);
 
     // Bird
-    this.bird = this.physics.add.sprite(100, 300, "bird");
-    this.bird.setCollideWorldBounds(true);
-
+    this.bird = this.physics.add.sprite(100, 300, "bird").setCollideWorldBounds(true);
     this.anims.create({
       key: "flap",
       frames: this.anims.generateFrameNumbers("bird", { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
-
     this.bird.play("flap");
 
     // Input
-    this.input.on("pointerdown", () => this.flap(), this);
     this.input.keyboard.on("keydown-SPACE", () => this.flap(), this);
 
     // Pipes
@@ -51,12 +56,9 @@ export default class GameScene extends Phaser.Scene {
       loop: true,
     });
 
-    // Score
+    // Score text
     this.score = 0;
-    this.scoreText = this.add.text(20, 20, "Score: 0", {
-      fontSize: "24px",
-      fill: "#fff",
-    });
+    this.scoreText = this.add.text(20, 20, "Score: 0", { fontSize: "24px", fill: "#fff" });
 
     // Collision
     this.physics.add.overlap(this.bird, this.pipes, this.gameOver, null, this);
@@ -72,49 +74,68 @@ export default class GameScene extends Phaser.Scene {
     const maxY = this.sys.game.config.height - gap - 50;
     const y = Phaser.Math.Between(minY, maxY);
 
-
     // Top pipe
     const topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
     topPipe.flipY = true;
     topPipe.body.allowGravity = false;
-    topPipe.body.setVelocityX(-200);
+    topPipe.body.setVelocityX(this.currentLevel.pipeSpeed);
 
     // Bottom pipe
     const bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
     bottomPipe.body.allowGravity = false;
-    bottomPipe.body.setVelocityX(-200);
+    bottomPipe.body.setVelocityX(this.currentLevel.pipeSpeed);
 
     // Score zone
     const scoreZone = this.add.zone(400, y, 1, gap * 2);
     this.physics.world.enable(scoreZone);
     scoreZone.body.allowGravity = false;
-    scoreZone.body.setVelocityX(-200);
+    scoreZone.body.setVelocityX(this.currentLevel.pipeSpeed);
 
     this.physics.add.overlap(this.bird, scoreZone, () => {
       this.score++;
       this.scoreText.setText("Score: " + this.score);
       scoreZone.destroy();
+
+      // Level win condition
+      if (this.score >= this.currentLevel.pointsNeeded) {
+        this.levelComplete();
+      }
     });
   }
 
+  levelComplete() {
+    // Save highscore
+    const highscore = localStorage.getItem("flappyHighscore") || 0;
+    if (this.score > highscore) {
+      localStorage.setItem("flappyHighscore", this.score);
+    }
+
+    // Next level or restart
+    if (this.level < this.levels.length) {
+      this.scene.start("StartMenuScene", { level: this.level + 1 });
+    } else {
+      this.scene.start("StartMenuScene", { level: 1 });
+    }
+  }
+
   gameOver() {
-    this.scene.restart();
+    // Save highscore
+    const highscore = localStorage.getItem("flappyHighscore") || 0;
+    if (this.score > highscore) {
+      localStorage.setItem("flappyHighscore", this.score);
+    }
+
+    this.scene.start("StartMenuScene", { level: this.level });
   }
 
   update() {
-    // Scroll background
     this.bg.tilePositionX += 1;
-
-    // If bird hits top/bottom
     if (this.bird.y >= 600 || this.bird.y <= 0) {
       this.gameOver();
     }
 
     this.pipes.children.each(pipe => {
-    if (pipe.x < -50) {
-        pipe.destroy();
-      }
-    }, this);
-
+      if (pipe.x < -50) pipe.destroy();
+    });
   }
 }
