@@ -60,7 +60,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     spawnPipe() {
-        const gap = 130;
+        const gap = 140;
         const y = Phaser.Math.Between(150, 450);
 
         // Top pipe
