@@ -59,34 +59,33 @@ export default class GameScene extends Phaser.Scene {
         this.bird.setVelocityY(-300);
     }
 
-    spawnPipes() {
-        const gapSize = 150; // vertical gap between pipes
-        const minGapY = 100; // don't let the gap start too high
-        const maxGapY = this.scale.height - 100 - gapSize;
-        
-        // Pick a random Y position for the gap start
-        const gapY = Phaser.Math.Between(minGapY, maxGapY);
+    spawnPipe() {
+        const gap = 130;
+        const y = Phaser.Math.Between(150, 450);
 
-        // ---- TOP PIPE ----
-        const topPipe = this.physics.add.image(400, 0, 'pipe')
-            .setOrigin(0.5, 0); // anchor at top center
-        topPipe.setImmovable(true);
-        topPipe.setVelocityX(-200);
-        // Scale pipe to reach gap start
-        topPipe.setDisplaySize(52, gapY);
+        // Top pipe
+        let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
+        topPipe.body.allowGravity = false;
+        topPipe.body.setVelocityX(-200);
 
-        // ---- BOTTOM PIPE ----
-        const bottomPipe = this.physics.add.image(400, gapY + gapSize, 'pipe')
-            .setOrigin(0.5, 0); // anchor at top center
-        bottomPipe.setImmovable(true);
-        bottomPipe.setVelocityX(-200);
-        // Scale pipe to stretch to bottom of screen
-        bottomPipe.setDisplaySize(52, this.scale.height - (gapY + gapSize));
+        // Bottom pipe
+        let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
+        bottomPipe.body.allowGravity = false;
+        bottomPipe.body.setVelocityX(-200);
 
-        // Add both pipes to the pipes group
-        this.pipes.add(topPipe);
-        this.pipes.add(bottomPipe);
+        // Score zone
+        let scoreZone = this.add.zone(400, y, 1, this.sys.game.config.height);
+        this.physics.world.enable(scoreZone);
+        scoreZone.body.allowGravity = false;
+        scoreZone.body.setVelocityX(-200);
+
+        this.physics.add.overlap(this.bird, scoreZone, () => {
+            this.score++;
+            this.scoreText.setText("Score: " + this.score);
+            scoreZone.destroy();
+        });
     }
+
 
     gameOver() {
         this.scene.restart();
