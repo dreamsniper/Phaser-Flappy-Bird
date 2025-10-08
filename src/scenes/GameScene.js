@@ -70,6 +70,7 @@ export default class GameScene extends Phaser.Scene {
         // ---- TOP PIPE ----
         const topPipe = this.physics.add.image(400, 0, 'pipe')
             .setOrigin(0.5, 0); // anchor at top center
+        topPipe.body.allowGravity = false;
         topPipe.setImmovable(true);
         topPipe.setVelocityX(-200);
         // Flip the sprite upside down
@@ -81,6 +82,7 @@ export default class GameScene extends Phaser.Scene {
         const bottomPipe = this.physics.add.image(400, gapY + gapSize, 'pipe')
             .setOrigin(0.5, 0); // anchor at top center
         bottomPipe.setImmovable(true);
+        bottomPipe.body.allowGravity = false;
         bottomPipe.setVelocityX(-200);
         // Scale pipe to stretch to bottom of screen
         bottomPipe.setDisplaySize(52, this.scale.height - (gapY + gapSize));
