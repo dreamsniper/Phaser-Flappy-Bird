@@ -59,7 +59,7 @@ export default class GameScene extends Phaser.Scene {
         this.bird.setVelocityY(-300);
     }
 
-    spawnPipe() {
+    spawnPipes() {
         const gapSize = 150; // vertical gap between pipes
         const minGapY = 100; // don't let the gap start too high
         const maxGapY = this.scale.height - 100 - gapSize;
@@ -88,8 +88,8 @@ export default class GameScene extends Phaser.Scene {
         // Add both pipes to the pipes group
         this.pipes.add(topPipe);
         this.pipes.add(bottomPipe);
-        }
     }
+
     
     gameOver() {
         this.scene.restart();
