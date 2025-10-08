@@ -72,7 +72,7 @@ export default class GameScene extends Phaser.Scene {
         let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
         bottomPipe.body.allowGravity = false;
         bottomPipe.body.setVelocityX(-200);
-         
+
         // Score zone
         let scoreZone = this.add.zone(400, y, 1, this.sys.game.config.height);
         this.physics.world.enable(scoreZone);
@@ -85,6 +85,7 @@ export default class GameScene extends Phaser.Scene {
             scoreZone.destroy();
         });
     }
+
 
     gameOver() {
         this.scene.restart();
