@@ -72,15 +72,12 @@ export default class GameScene extends Phaser.Scene {
         topPipe.flipY = true;
         topPipe.body.allowGravity = false;
         topPipe.body.setVelocityX(-200);
-        // Scale pipe to reach gap start
-        topPipe.setDisplaySize(52, gapY);
+        topPipe.setDisplaySize(52, minY);
 
         // Bottom pipe
         let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
         bottomPipe.body.allowGravity = false;
         bottomPipe.body.setVelocityX(-200);
-        // Scale pipe to stretch to bottom of screen
-        bottomPipe.setDisplaySize(52, this.scale.height - (gapY + gapSize));
 
         // Score zone
         let scoreZone = this.add.zone(400, y, 1, gap * 2);
