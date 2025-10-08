@@ -1,4 +1,10 @@
-preload() {
+export default class GameScene extends Phaser.Scene {
+    constructor() {
+        super("GameScene");
+        this.score = 0;
+    }
+
+    preload() {
     this.load.spritesheet("bird", "assets/images/bird-spritesheet.png", {
         frameWidth: 34, frameHeight: 24
     });
@@ -6,21 +12,12 @@ preload() {
 
     // Background
     this.load.image("bg-dawn", "assets/images/background-dawn.png");
-    console.log(this.textures.exists("bg-dawn"));
 }
 
-create() {
-    // Background (added FIRST so it sits behind everything)
-    this.bg = this.add.tileSprite(
-        0,
-        0,
-        this.sys.game.config.width,
-        this.sys.game.config.height,
-        "bg-dawn"
-    ).setOrigin(0, 0);
-
-    // Make sure it resizes to fill screen
-    this.bg.setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
+    create() {
+    // Background (tileSprite lets us scroll it)
+    this.bg = this.add.tileSprite(0, 0, this.sys.game.config.width, this.sys.game.config.height, "bg-dawn")
+        .setOrigin(0, 0);
 
     // Bird
     this.bird = this.physics.add.sprite(100, 300, "bird");
@@ -58,12 +55,44 @@ create() {
     this.physics.add.overlap(this.bird, this.pipes, this.gameOver, null, this);
 }
 
-update() {
-    // Scroll background
-    this.bg.tilePositionX += 1;
+    flap() {
+        this.bird.setVelocityY(-300);
+    }
 
-    // If bird hits top/bottom
-    if (this.bird.y >= 600 || this.bird.y <= 0) {
-        this.gameOver();
+    spawnPipe() {
+        const gap = 130;
+        const y = Phaser.Math.Between(150, 450);
+
+        // Top pipe
+        let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
+        topPipe.body.velocity.x = -200;
+
+        // Bottom pipe
+        let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
+        bottomPipe.body.velocity.x = -200;
+
+        // Score zone
+        let scoreZone = this.add.zone(400, y, 1, this.sys.game.config.height);
+        this.physics.world.enable(scoreZone);
+        scoreZone.body.setVelocityX(-200);
+        this.physics.add.overlap(this.bird, scoreZone, () => {
+            this.score++;
+            this.scoreText.setText("Score: " + this.score);
+            scoreZone.destroy();
+        });
+    }
+
+    gameOver() {
+        this.scene.restart();
+    }
+
+    update() {
+        // Scroll background
+        this.bg.tilePositionX += 1;
+
+        // If bird hits top/bottom
+        if (this.bird.y >= 600 || this.bird.y <= 0) {
+            this.gameOver();
+        }
     }
 }
