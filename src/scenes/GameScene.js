@@ -87,8 +87,6 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-
-    
     gameOver() {
         this.scene.restart();
     }
@@ -101,11 +99,5 @@ export default class GameScene extends Phaser.Scene {
         if (this.bird.y >= 600 || this.bird.y <= 0) {
             this.gameOver();
         }
-
-        this.pipes.children.each(pipe => {
-            if (pipe.x < -50) {
-                pipe.destroy();
-            }
-        }, this);
     }
 }
