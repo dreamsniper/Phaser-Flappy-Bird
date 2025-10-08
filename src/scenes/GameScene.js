@@ -61,6 +61,10 @@ export default class GameScene extends Phaser.Scene {
 
     spawnPipe() {
         const gap = 140;
+        const minY = gap + 50;
+        const maxY = this.sys.game.config.height - gap - 50;
+        const y = Phaser.Math.Between(minY, maxY);
+
 
         // Top pipe
         let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
@@ -86,7 +90,7 @@ export default class GameScene extends Phaser.Scene {
             scoreZone.destroy();
         });
     }
-
+    
     gameOver() {
         this.scene.restart();
     }
@@ -99,5 +103,11 @@ export default class GameScene extends Phaser.Scene {
         if (this.bird.y >= 600 || this.bird.y <= 0) {
             this.gameOver();
         }
+
+        this.pipes.children.each(pipe => {
+            if (pipe.x < -50) {
+                pipe.destroy();
+            }
+        }, this);
     }
 }
