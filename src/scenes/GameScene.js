@@ -60,27 +60,32 @@ export default class GameScene extends Phaser.Scene {
     }
 
     spawnPipe() {
-        const gap = 130;
-        const y = Phaser.Math.Between(150, 450);
+    const gap = 130;
+    const y = Phaser.Math.Between(150, 450);
 
-        // Top pipe
-        let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
-        topPipe.body.velocity.x = -200;
+    // Top pipe
+    let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
+    topPipe.body.allowGravity = false;
+    topPipe.body.setVelocityX(-200);
 
-        // Bottom pipe
-        let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
-        bottomPipe.body.velocity.x = -200;
+    // Bottom pipe
+    let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
+    bottomPipe.body.allowGravity = false;
+    bottomPipe.body.setVelocityX(-200);
 
-        // Score zone
-        let scoreZone = this.add.zone(400, y, 1, this.sys.game.config.height);
-        this.physics.world.enable(scoreZone);
-        scoreZone.body.setVelocityX(-200);
-        this.physics.add.overlap(this.bird, scoreZone, () => {
-            this.score++;
-            this.scoreText.setText("Score: " + this.score);
-            scoreZone.destroy();
-        });
-    }
+    // Score zone
+    let scoreZone = this.add.zone(400, y, 1, this.sys.game.config.height);
+    this.physics.world.enable(scoreZone);
+    scoreZone.body.allowGravity = false;
+    scoreZone.body.setVelocityX(-200);
+
+    this.physics.add.overlap(this.bird, scoreZone, () => {
+        this.score++;
+        this.scoreText.setText("Score: " + this.score);
+        scoreZone.destroy();
+    });
+}
+
 
     gameOver() {
         this.scene.restart();
