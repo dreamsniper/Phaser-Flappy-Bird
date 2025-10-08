@@ -1,3 +1,5 @@
+import levels from "../data/levels.js";
+
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
@@ -6,14 +8,7 @@ export default class GameScene extends Phaser.Scene {
 
   init(data) {
     this.level = data.level || 1;
-
-    // Difficulty scaling by level
-    this.levels = [
-      { name: "Morning", pipeSpeed: -200, pointsNeeded: 5 },
-      { name: "Afternoon", pipeSpeed: -250, pointsNeeded: 10 },
-      { name: "Evening", pipeSpeed: -300, pointsNeeded: 15 },
-      { name: "Night", pipeSpeed: -350, pointsNeeded: 20 },
-    ];
+    this.levels = levels;
     this.currentLevel = this.levels[this.level - 1];
   }
 
@@ -34,7 +29,7 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.sys.game.config;
-    const bgKey = ["bg-morning", "bg-afternoon", "bg-evening", "bg-night"][this.level - 1];
+  const bgKey = this.currentLevel.bgKey || ["bg-morning", "bg-afternoon", "bg-evening", "bg-night"][this.level - 1];
 
     // Background
     this.bg = this.add
@@ -132,7 +127,8 @@ export default class GameScene extends Phaser.Scene {
       localStorage.setItem("flappyHighscore", this.score);
     }
 
-    this.scene.start("StartMenuScene", { level: this.level });
+    // Transition to a GameOver scene so we can show final score and restart options
+    this.scene.start("GameOverScene", { level: this.level, score: this.score });
   }
 
   update() {

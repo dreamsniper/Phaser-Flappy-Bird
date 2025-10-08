@@ -1,5 +1,6 @@
-import StartMenuScene from "./StartMenuScene.js";
-import GameScene from "./GameScene.js";
+import StartMenuScene from "scenes/StartMenuScene.js";
+import GameScene from "scenes/GameScene.js";
+import GameOverScene from "scenes/GameOverScene.js";
 
 const config = {
   type: Phaser.AUTO,
@@ -9,7 +10,7 @@ const config = {
     default: "arcade",
     arcade: { gravity: { y: 600 }, debug: false },
   },
-  scene: [StartMenuScene, GameScene], // start with menu
+  scene: [StartMenuScene, GameScene, GameOverScene], // start with menu
 };
 
 new Phaser.Game(config);

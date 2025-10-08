@@ -1,3 +1,5 @@
+import levels from "../data/levels.js";
+
 export default class StartMenuScene extends Phaser.Scene {
   constructor() {
     super("StartMenuScene");
@@ -7,14 +9,8 @@ export default class StartMenuScene extends Phaser.Scene {
     // Store persistent data (level, highscore, etc.)
     this.level = data.level || 1;
     this.highscore = localStorage.getItem("flappyHighscore") || 0;
-
-    // Level names + score requirements
-    this.levels = [
-      { name: "Morning", pointsNeeded: 5 },
-      { name: "Afternoon", pointsNeeded: 10 },
-      { name: "Evening", pointsNeeded: 15 },
-      { name: "Night", pointsNeeded: 20 },
-    ];
+    // Use centralized levels data
+    this.levels = levels.map(l => ({ name: l.name, pointsNeeded: l.pointsNeeded || l.pointsNeeded }));
   }
 
   create() {
