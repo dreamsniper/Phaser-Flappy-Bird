@@ -72,7 +72,6 @@ export default class GameScene extends Phaser.Scene {
         topPipe.flipY = true;
         topPipe.body.allowGravity = false;
         topPipe.body.setVelocityX(-200);
-        topPipe.setDisplaySize(52, minY);
 
         // Bottom pipe
         let bottomPipe = this.pipes.create(400, y + gap, "pipe").setOrigin(0, 0);
