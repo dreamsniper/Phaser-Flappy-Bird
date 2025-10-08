@@ -66,6 +66,8 @@ export default class GameScene extends Phaser.Scene {
         // Top pipe
         let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
         topPipe.body.allowGravity = false;
+        // Flip the sprite upside down
+        topPipe.flipY = true;
         topPipe.body.setVelocityX(-200);
 
         // Bottom pipe
