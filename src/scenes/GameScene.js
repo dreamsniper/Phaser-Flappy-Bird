@@ -61,10 +61,6 @@ export default class GameScene extends Phaser.Scene {
 
     spawnPipe() {
         const gap = 140;
-        const minY = gap + 50;
-        const maxY = this.sys.game.config.height - gap - 50;
-        const y = Phaser.Math.Between(minY, maxY);
-
 
         // Top pipe
         let topPipe = this.pipes.create(400, y - gap, "pipe").setOrigin(0, 1);
