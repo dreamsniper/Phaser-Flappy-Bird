@@ -1,6 +1,6 @@
-import StartMenuScene from "scenes/StartMenuScene.js";
-import GameScene from "scenes/GameScene.js";
-import GameOverScene from "scenes/GameOverScene.js";
+import StartMenuScene from "./scenes/StartMenuScene.js";
+import GameScene from "./scenes/GameScene.js";
+import GameOverScene from "./scenes/GameOverScene.js";
 
 const config = {
   type: Phaser.AUTO,
