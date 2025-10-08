@@ -1,17 +1,15 @@
-preload() {
-    this.load.spritesheet("bird", "assets/images/bird-spritesheet.png", {
-        frameWidth: 34, frameHeight: 24
-    });
-    this.load.image("pipe", "assets/images/pipe.png");
-
-    // Background
-    this.load.image("bg-dawn", "assets/images/background-dawn.png");
-}
-
 create() {
-    // Background (tileSprite lets us scroll it)
-    this.bg = this.add.tileSprite(0, 0, this.sys.game.config.width, this.sys.game.config.height, "bg-dawn")
-        .setOrigin(0, 0);
+    // Background (added FIRST so it sits behind everything)
+    this.bg = this.add.tileSprite(
+        0,
+        0,
+        this.sys.game.config.width,
+        this.sys.game.config.height,
+        "bg-dawn"
+    ).setOrigin(0, 0);
+
+    // Make sure it resizes to fill screen
+    this.bg.setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
 
     // Bird
     this.bird = this.physics.add.sprite(100, 300, "bird");
@@ -47,14 +45,4 @@ create() {
 
     // Collision
     this.physics.add.overlap(this.bird, this.pipes, this.gameOver, null, this);
-}
-
-update() {
-    // Scroll background
-    this.bg.tilePositionX += 1;
-
-    // If bird hits top/bottom
-    if (this.bird.y >= 600 || this.bird.y <= 0) {
-        this.gameOver();
-    }
 }
