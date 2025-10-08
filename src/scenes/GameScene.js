@@ -89,8 +89,8 @@ export default class GameScene extends Phaser.Scene {
         this.pipes.add(topPipe);
         this.pipes.add(bottomPipe);
         }
-
-
+    }
+    
     gameOver() {
         this.scene.restart();
     }
