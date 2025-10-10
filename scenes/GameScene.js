@@ -24,20 +24,25 @@ export default class GameScene extends Phaser.Scene {
     this.load.image("bg-afternoon", "assets/images/background-afternoon.png");
     this.load.image("bg-evening", "assets/images/background-evening.png");
     this.load.image("bg-night", "assets/images/background-night.png");
-  }
 
+    // Load webfont
+    this.load.script("webfont", "https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js");
+  }
 
   create() {
     const { width, height } = this.sys.game.config;
-  const bgKey = this.currentLevel.bgKey || ["bg-morning", "bg-afternoon", "bg-evening", "bg-night"][this.level - 1];
+    const bgKey =
+      this.currentLevel.bgKey ||
+      ["bg-morning", "bg-afternoon", "bg-evening", "bg-night"][this.level - 1];
 
     // Background
-    this.bg = this.add
-      .tileSprite(0, 0, width, height, bgKey)
-      .setOrigin(0, 0);
+    this.bg = this.add.tileSprite(0, 0, width, height, bgKey).setOrigin(0, 0);
 
     // Bird
-    this.bird = this.physics.add.sprite(100, 300, "bird").setCollideWorldBounds(true);
+    this.bird = this.physics.add
+      .sprite(100, 300, "bird")
+      .setCollideWorldBounds(true);
+
     this.anims.create({
       key: "flap",
       frames: this.anims.generateFrameNumbers("bird", { start: 0, end: 2 }),
@@ -58,9 +63,29 @@ export default class GameScene extends Phaser.Scene {
       loop: true,
     });
 
-    // Score text
-    this.score = 0;
-    this.scoreText = this.add.text(20, 20, "Score: 0", { fontSize: "24px", fill: "#fff" });
+    // Score (using arcade font)
+    WebFont.load({
+      google: { families: ["Press Start 2P"] },
+      active: () => {
+        this.score = 0;
+        this.scoreText = this.add.text(20, 20, "SCORE: 0", {
+          fontFamily: '"Press Start 2P"',
+          fontSize: "18px",
+          color: "#FFFF00",
+          backgroundColor: "rgba(0,0,0,0.3)", // subtle box behind text
+          padding: { x: 6, y: 4 }
+        }).setOrigin(0, 0);
+
+        // Optional: add level indicator
+        this.levelText = this.add.text(width - 20, 20, `LEVEL: ${this.level}`, {
+          fontFamily: '"Press Start 2P"',
+          fontSize: "14px",
+          color: "#00FFFF",
+          backgroundColor: "rgba(0,0,0,0.3)",
+          padding: { x: 6, y: 4 }
+        }).setOrigin(1, 0);
+      }
+    });
 
     // Collision
     this.physics.add.overlap(this.bird, this.pipes, this.gameOver, null, this);
@@ -95,7 +120,9 @@ export default class GameScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.bird, scoreZone, () => {
       this.score++;
-      this.scoreText.setText("Score: " + this.score);
+      if (this.scoreText) {
+        this.scoreText.setText("SCORE: " + this.score);
+      }
       scoreZone.destroy();
 
       // Level win condition
@@ -106,13 +133,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   levelComplete() {
-    // Save highscore
     const highscore = localStorage.getItem("flappyHighscore") || 0;
     if (this.score > highscore) {
       localStorage.setItem("flappyHighscore", this.score);
     }
 
-    // Next level or restart
     if (this.level < this.levels.length) {
       this.scene.start("StartMenuScene", { level: this.level + 1 });
     } else {
@@ -121,13 +146,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   gameOver() {
-    // Save highscore
     const highscore = localStorage.getItem("flappyHighscore") || 0;
     if (this.score > highscore) {
       localStorage.setItem("flappyHighscore", this.score);
     }
-
-    // Transition to a GameOver scene so we can show final score and restart options
     this.scene.start("GameOverScene", { level: this.level, score: this.score });
   }
 
@@ -136,7 +158,6 @@ export default class GameScene extends Phaser.Scene {
     if (this.bird.y >= 600 || this.bird.y <= 0) {
       this.gameOver();
     }
-
     this.pipes.children.each(pipe => {
       if (pipe.x < -50) pipe.destroy();
     });
