@@ -10,6 +10,8 @@ export default class GameScene extends Phaser.Scene {
     this.level = data.level || 1;
     this.levels = levels;
     this.currentLevel = this.levels[this.level - 1];
+    // reset game over flag for scene restarts
+    this.isGameOver = false;
   }
 
   preload() {
@@ -51,12 +53,14 @@ export default class GameScene extends Phaser.Scene {
     });
     this.bird.play("flap");
 
-    // Input
-    this.input.keyboard.on("keydown-SPACE", () => this.flap(), this);
+  // Input
+  // store handler so we can remove only this listener on game over
+  this._spaceHandler = () => this.flap();
+  this.input.keyboard.on("keydown-SPACE", this._spaceHandler, this);
 
     // Pipes
     this.pipes = this.physics.add.group();
-    this.time.addEvent({
+    this.spawnEvent = this.time.addEvent({
       delay: 1500,
       callback: this.spawnPipe,
       callbackScope: this,
@@ -87,8 +91,8 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    // Collision
-    this.physics.add.overlap(this.bird, this.pipes, this.gameOver, null, this);
+  // Collision (use collider so pipes physically interact and trigger game over)
+  this.physics.add.collider(this.bird, this.pipes, this.gameOver, null, this);
   }
 
   flap() {
@@ -118,18 +122,43 @@ export default class GameScene extends Phaser.Scene {
     scoreZone.body.allowGravity = false;
     scoreZone.body.setVelocityX(this.currentLevel.pipeSpeed);
 
-    this.physics.add.overlap(this.bird, scoreZone, () => {
+    // Single overlap handler: increment score, show floating +1, and check level complete
+    this.physics.add.overlap(this.bird, scoreZone, (bird, zone) => {
+      // prevent double-scoring if handler somehow fires twice
+      if (!zone.active) return;
+
       this.score++;
       if (this.scoreText) {
         this.scoreText.setText("SCORE: " + this.score);
       }
-      scoreZone.destroy();
+
+      // Floating +1 popup above the bird
+      const popup = this.add.text(bird.x, bird.y - 20, "+1", {
+        fontFamily: '"Press Start 2P"',
+        fontSize: "16px",
+        color: "#00FF00",
+        stroke: "#003300",
+        strokeThickness: 2
+      }).setOrigin(0.5);
+
+      this.tweens.add({
+        targets: popup,
+        y: popup.y - 40,
+        alpha: 0,
+        duration: 800,
+        ease: "Cubic.easeOut",
+        onComplete: () => popup.destroy()
+      });
+
+      // destroy the zone so it can't score again
+      zone.destroy();
 
       // Level win condition
       if (this.score >= this.currentLevel.pointsNeeded) {
         this.levelComplete();
       }
     });
+
   }
 
   levelComplete() {
@@ -146,11 +175,39 @@ export default class GameScene extends Phaser.Scene {
   }
 
   gameOver() {
-    const highscore = localStorage.getItem("flappyHighscore") || 0;
+    // Prevent multiple gameOver sequences
+    if (this.isGameOver) return;
+    this.isGameOver = true;
+
+    // Save highscore (ensure numeric comparison)
+    const highscoreRaw = localStorage.getItem("flappyHighscore");
+    const highscore = highscoreRaw ? Number(highscoreRaw) : 0;
     if (this.score > highscore) {
-      localStorage.setItem("flappyHighscore", this.score);
+      localStorage.setItem("flappyHighscore", String(this.score));
     }
-    this.scene.start("GameOverScene", { level: this.level, score: this.score });
+
+    // Stop spawning new pipes
+    if (this.spawnEvent) this.spawnEvent.remove(false);
+
+    // Optionally freeze existing pipes so they don't keep moving while shaking
+    // Clear existing pipes so they don't persist into the next scene
+    if (this.pipes) {
+      this.pipes.clear(true, true);
+    }
+
+    // Disable bird physics and input during shake
+    this.bird.body.enable = false;
+    // remove only the space handler we added (avoids removing other scenes' listeners)
+    if (this._spaceHandler) {
+      this.input.keyboard.off("keydown-SPACE", this._spaceHandler, this);
+    }
+
+    // Shake camera for 500ms then go to GameOverScene
+    this.cameras.main.shake(500, 0.01);
+
+    this.time.delayedCall(500, () => {
+      this.scene.start("GameOverScene", { level: this.level, score: this.score });
+    });
   }
 
   update() {
