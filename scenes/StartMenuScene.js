@@ -72,10 +72,27 @@ export default class StartMenuScene extends Phaser.Scene {
           repeat: -1
         });
 
-        // Input
-        this.input.keyboard.on("keydown-SPACE", () => {
-          this.scene.start("GameScene", { level: this.level });
+        // Mute button: read stored state
+        const muteRaw = localStorage.getItem('flappyMute');
+        this.isMuted = muteRaw === '1';
+        this.muteBtn = this.add.text(width - 20, 20, this.isMuted ? '🔈' : '🔊', {
+          fontFamily: '"Press Start 2P"',
+          fontSize: '14px',
+          color: '#FFFFFF',
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          padding: { x: 6, y: 4 }
+        }).setOrigin(1, 0).setInteractive();
+
+        this.muteBtn.on('pointerdown', () => {
+          this.isMuted = !this.isMuted;
+          localStorage.setItem('flappyMute', this.isMuted ? '1' : '0');
+          this.muteBtn.setText(this.isMuted ? '🔈' : '🔊');
         });
+
+        // Input (keyboard and pointer/touch)
+        this._startHandler = () => this.scene.start("GameScene", { level: this.level });
+        this.input.keyboard.on("keydown-SPACE", this._startHandler, this);
+        this.input.on("pointerdown", this._startHandler, this);
       }
     });
   }

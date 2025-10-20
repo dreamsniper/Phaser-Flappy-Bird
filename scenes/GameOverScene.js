@@ -6,7 +6,8 @@ export default class GameOverScene extends Phaser.Scene {
 	init(data) {
 		this.level = data.level || 1;
 		this.score = data.score || 0;
-		this.highscore = localStorage.getItem("flappyHighscore") || 0;
+			const hsRaw = localStorage.getItem("flappyHighscore");
+			this.highscore = hsRaw ? Number(hsRaw) : 0;
 	}
 
 	preload() {
@@ -76,14 +77,13 @@ export default class GameOverScene extends Phaser.Scene {
 					color: "#FF00FF"
 				}).setOrigin(0.5);
 
-				// Input
-				this.input.keyboard.on("keydown-SPACE", () => {
-					this.scene.start("GameScene", { level: this.level });
-				});
+				// Input (keyboard + pointer/touch)
+				this._retryHandler = () => this.scene.start("GameScene", { level: this.level });
+				this._menuHandler = () => this.scene.start("StartMenuScene", { level: this.level });
 
-				this.input.keyboard.on("keydown-M", () => {
-					this.scene.start("StartMenuScene", { level: this.level });
-				});
+				this.input.keyboard.on("keydown-SPACE", this._retryHandler, this);
+				this.input.keyboard.on("keydown-M", this._menuHandler, this);
+				this.input.on("pointerdown", this._retryHandler, this);
 			}
 		});
 	}

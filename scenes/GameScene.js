@@ -12,6 +12,8 @@ export default class GameScene extends Phaser.Scene {
     this.currentLevel = this.levels[this.level - 1];
     // reset game over flag for scene restarts
     this.isGameOver = false;
+    // group to track score zones so we can cleanup off-screen
+    this.scoreZones = null;
   }
 
   preload() {
@@ -29,10 +31,69 @@ export default class GameScene extends Phaser.Scene {
 
     // Load webfont
     this.load.script("webfont", "https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js");
+    // Optional external sounds (kept as placeholders if you add files)
+    // If you don't add files to assets/sounds, the scene will fall back to a simple WebAudio beep.
+    this.load.audio && this.load.audio('flap', ['assets/sounds/flap.wav']);
+    this.load.audio && this.load.audio('score', ['assets/sounds/score.wav']);
+    this.load.audio && this.load.audio('death', ['assets/sounds/death.wav']);
   }
 
   create() {
     const { width, height } = this.sys.game.config;
+    // Setup simple WebAudio context for fallback SFX
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.audioCtx = new AudioCtx();
+    } catch (e) {
+      this.audioCtx = null;
+    }
+
+    const muteRaw = localStorage.getItem('flappyMute');
+    this.isMuted = muteRaw === '1';
+
+    // lightweight SFX helper: tries Phaser audio first, otherwise uses synth
+    this.playSFX = (type) => {
+      if (this.isMuted) return;
+      // Phaser audio if present
+      if (this.sound && this.cache.audio.exists && this.cache.audio.exists(type)) {
+        const a = this.sound.add(type);
+        a.play();
+        return;
+      }
+      // fallback synth
+      if (!this.audioCtx) return;
+      const ctx = this.audioCtx;
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      if (type === 'flap') {
+        o.frequency.setValueAtTime(880, now);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+        o.start(now);
+        o.stop(now + 0.2);
+      } else if (type === 'score') {
+        o.frequency.setValueAtTime(1320, now);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.14, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        o.start(now);
+        o.stop(now + 0.3);
+      } else if (type === 'death') {
+        o.frequency.setValueAtTime(220, now);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.2, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+        o.start(now);
+        o.stop(now + 0.65);
+      }
+    };
+
+    // Create UI (pause, mute, fullscreen)
+    this.createUI && this.createUI();
     const bgKey =
       this.currentLevel.bgKey ||
       ["bg-morning", "bg-afternoon", "bg-evening", "bg-night"][this.level - 1];
@@ -57,11 +118,16 @@ export default class GameScene extends Phaser.Scene {
   // store handler so we can remove only this listener on game over
   this._spaceHandler = () => this.flap();
   this.input.keyboard.on("keydown-SPACE", this._spaceHandler, this);
+  // support pointer/touch input for mobile and desktop click
+  this.input.on("pointerdown", this._spaceHandler, this);
 
     // Pipes
     this.pipes = this.physics.add.group();
+    // Adaptive spawn params
+    this.baseDelay = 1500; // ms
+    this.baseGap = 60; // px
     this.spawnEvent = this.time.addEvent({
-      delay: 1500,
+      delay: this.baseDelay,
       callback: this.spawnPipe,
       callbackScope: this,
       loop: true,
@@ -97,6 +163,7 @@ export default class GameScene extends Phaser.Scene {
 
   flap() {
     this.bird.setVelocityY(-300);
+    this.playSFX && this.playSFX('flap');
   }
 
   spawnPipe() {
@@ -116,11 +183,15 @@ export default class GameScene extends Phaser.Scene {
     bottomPipe.body.allowGravity = false;
     bottomPipe.body.setVelocityX(this.currentLevel.pipeSpeed);
 
-    // Score zone
-    const scoreZone = this.add.zone(400, y, 1, gap * 2);
-    this.physics.world.enable(scoreZone);
-    scoreZone.body.allowGravity = false;
-    scoreZone.body.setVelocityX(this.currentLevel.pipeSpeed);
+  // Score zone
+  const scoreZone = this.add.zone(400, y, 1, gap * 2);
+  this.physics.world.enable(scoreZone);
+  scoreZone.body.allowGravity = false;
+  scoreZone.body.setVelocityX(this.currentLevel.pipeSpeed);
+
+  // Track score zones so we can destroy them once off-screen to avoid leaks
+  if (!this.scoreZones) this.scoreZones = this.add.group();
+  this.scoreZones.add(scoreZone);
 
     // Single overlap handler: increment score, show floating +1, and check level complete
     this.physics.add.overlap(this.bird, scoreZone, (bird, zone) => {
@@ -131,6 +202,8 @@ export default class GameScene extends Phaser.Scene {
       if (this.scoreText) {
         this.scoreText.setText("SCORE: " + this.score);
       }
+      // play score sfx
+      this.playSFX('score');
 
       // Floating +1 popup above the bird
       const popup = this.add.text(bird.x, bird.y - 20, "+1", {
@@ -162,9 +235,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   levelComplete() {
-    const highscore = localStorage.getItem("flappyHighscore") || 0;
+    const highscoreRaw = localStorage.getItem("flappyHighscore");
+    const highscore = highscoreRaw ? Number(highscoreRaw) : 0;
     if (this.score > highscore) {
-      localStorage.setItem("flappyHighscore", this.score);
+      localStorage.setItem("flappyHighscore", String(this.score));
     }
 
     if (this.level < this.levels.length) {
@@ -200,23 +274,98 @@ export default class GameScene extends Phaser.Scene {
     // remove only the space handler we added (avoids removing other scenes' listeners)
     if (this._spaceHandler) {
       this.input.keyboard.off("keydown-SPACE", this._spaceHandler, this);
+      this.input.off("pointerdown", this._spaceHandler, this);
     }
 
     // Shake camera for 500ms then go to GameOverScene
-    this.cameras.main.shake(500, 0.01);
+  this.cameras.main.shake(500, 0.01);
+  this.playSFX && this.playSFX('death');
 
     this.time.delayedCall(500, () => {
       this.scene.start("GameOverScene", { level: this.level, score: this.score });
     });
   }
-
   update() {
+    if (this.isPaused) return;
     this.bg.tilePositionX += 1;
     if (this.bird.y >= 600 || this.bird.y <= 0) {
       this.gameOver();
     }
     this.pipes.children.each(pipe => {
       if (pipe.x < -50) pipe.destroy();
+    });
+
+    // Clean up score zones that have passed off-screen
+    if (this.scoreZones) {
+      this.scoreZones.children.each(zone => {
+        if (zone.x < -50) zone.destroy();
+      });
+    }
+  }
+
+  createUI() {
+    const { width } = this.sys.game.config;
+    this.isPaused = false;
+    // Pause button (top-left)
+    this.pauseBtn = this.add.text(10, 10, 'II', {
+      fontFamily: '"Press Start 2P"',
+      fontSize: '14px',
+      color: '#FFFFFF',
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      padding: { x: 8, y: 6 }
+    }).setOrigin(0, 0).setInteractive();
+
+    this.pauseBtn.on('pointerdown', () => {
+      this.isPaused = !this.isPaused;
+      if (this.isPaused) {
+        this.physics.world.pause();
+        if (this.spawnEvent) this.spawnEvent.paused = true;
+        this.resumeOverlay = this.add.text(width / 2, 300, 'PAUSED\nTap to resume', {
+          fontFamily: '"Press Start 2P"',
+          fontSize: '18px',
+          color: '#FFFFFF',
+          align: 'center'
+        }).setOrigin(0.5).setInteractive();
+        this.resumeOverlay.on('pointerdown', () => {
+          this.isPaused = false;
+          this.physics.world.resume();
+          if (this.spawnEvent) this.spawnEvent.paused = false;
+          this.resumeOverlay.destroy();
+        });
+      } else {
+        this.physics.world.resume();
+        if (this.spawnEvent) this.spawnEvent.paused = false;
+        if (this.resumeOverlay) this.resumeOverlay.destroy();
+      }
+    });
+
+    // Mute button (top-right)
+    this.muteBtn = this.add.text(width - 10, 10, this.isMuted ? '🔈' : '🔊', {
+      fontFamily: '"Press Start 2P"',
+      fontSize: '14px',
+      color: '#FFFFFF',
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      padding: { x: 8, y: 6 }
+    }).setOrigin(1, 0).setInteractive();
+
+    this.muteBtn.on('pointerdown', () => {
+      this.isMuted = !this.isMuted;
+      localStorage.setItem('flappyMute', this.isMuted ? '1' : '0');
+      this.muteBtn.setText(this.isMuted ? '🔈' : '🔊');
+    });
+
+    // Fullscreen toggle
+    this.fullscreenBtn = this.add.text(width - 60, 10, '⛶', {
+      fontFamily: '"Press Start 2P"',
+      fontSize: '14px',
+      color: '#FFFFFF',
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      padding: { x: 8, y: 6 }
+    }).setOrigin(1, 0).setInteractive();
+
+    this.fullscreenBtn.on('pointerdown', () => {
+      if (!this.scale.isFullscreen) this.scale.startFullscreen();
+      else this.scale.stopFullscreen();
     });
   }
 }
